@@ -1,0 +1,91 @@
+# Local Polynomial Estimator for x2 with GCV and MSE Calculation
+vd <- c(0, 1, 2)  # Degrees of polynomial
+cols_2 <- c("blue", "red", "black")  # Colors for each degree
+kernel <- gaussK  # Kernel function
+
+# Step 1: Compute Optimal Bandwidths
+vh <- sapply(vd, function(d) regCVBwSelC(x2, y3, d, kernel = kernel))
+names(vh) <- paste("Degree", vd)
+
+cat("Optimal Bandwidths:\n")
+print(vh)
+
+# Initialize GCV and MSE storage
+gcv_values <- numeric(length(vd))
+mse_values <- numeric(length(vd))
+
+# Step 2: Generate Plot and Compute GCV & MSE
+png("x2_Local_Polynomial.png", width = 800, height = 600)
+plot(x2, y3, main = "Local Polynomial Estimation for x2", xlab = "x2", ylab = "Y1", pch = 16, cex = 0.7)
+
+for (i in seq_along(vd)) {
+  # Fit local polynomial smoother
+  fit <- locPolSmootherC(x2, y3, sort(x2), vh[i], vd[i], kernel = kernel)
+  fitted_values <- approx(fit[, 1], fit[, 2], xout = x2)$y  # Interpolate fitted values
+  
+  # Add line to the plot
+  lines(fit[, 1], fit[, 2], lwd = 2, col = cols_2[i])
+  
+  # Compute GCV
+  rss <- sum((y3 - fitted_values)^2)  # Residual sum of squares
+  n <- length(y3)
+  edf <- n / vh[i]  # Approximation of effective degrees of freedom
+  gcv_values[i] <- rss / (1 - (edf / n))^2
+  
+  # Compute MSE
+  mse_values[i] <- mean((y3 - fitted_values)^2)
+}
+
+# Add legend
+legend("topright", inset = 0.02, col = cols_2, lwd = 2, legend = paste("Degree", vd))
+dev.off()
+
+# Step 3: Create and Display Results Table
+results_table <- data.frame(
+  Degree = vd,
+  Bandwidth = vh,
+  GCV = gcv_values,
+  MSE = mse_values
+)
+
+print(results_table)
+
+
+# Local Linear Estimator for x2 with GCV and MSE Calculation
+h <- regCVBwSelC(x2, y3, 1, kernel = gaussK)  # Optimal bandwidth
+cat("Optimal Bandwidth (h):", h, "\n")
+
+# Perform Local Linear Smoothing
+Loclinestimation <- locLinSmootherC(x2, y3, sort(x2), h, kernel = gaussK)
+yestimate <- Loclinestimation[, 2]
+
+# Interpolate fitted values to match original x2
+fitted_values <- approx(Loclinestimation[, 1], yestimate, xout = x2)$y
+
+# Compute GCV
+rss <- sum((y3 - fitted_values)^2)  # Residual sum of squares
+n <- length(y3)
+edf <- n / h  # Approximation of effective degrees of freedom
+gcv <- rss / (1 - (edf / n))^2
+
+# Compute MSE
+mse <- mean((y3 - fitted_values)^2)
+
+# Print the metrics
+cat("GCV:", gcv, "\n")
+cat("MSE:", mse, "\n")
+
+# Save Plot
+png("x2_Local_Linear.png", width = 800, height = 600)
+plot(x2, y3, main = "Local Linear Estimation for x2", xlab = "x2", ylab = "Y1", pch = 16, cex = 0.7)
+lines(sort(x2), yestimate, col = "blue", lwd = 2)
+legend("topright", inset = 0.02, lwd = 2, col = "blue", legend = "Local Linear Fit")
+dev.off()
+
+# Display Results in Table Format
+results_table <- data.frame(
+  Metric = c("Generalized Cross Validation (GCV)", "Mean Squared Error (MSE)"),
+  Value = c(gcv, mse)
+)
+
+print(results_table)
