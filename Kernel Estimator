@@ -1,10 +1,6 @@
 library(KernSmooth)
 library(np)
 library(MASS)
-
-setwd("D:/Cinta Rizki/Document/S1 Statistika/Skripsi/SEMIPARAMETRIK BIRESPON P SPLINE/P1 dan P2")
-data<- read.table("IKK dan PPM.txt",header=TRUE, sep="", 
-                  na.strings="NA", dec=".", strip.white=TRUE);data
 # Kernel Smoothing and Evaluation for x2
 library(ggplot2)
 
