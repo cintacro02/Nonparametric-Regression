@@ -1,0 +1,43 @@
+library(KernSmooth)
+library(np)
+library(MASS)
+
+setwd("D:/Cinta Rizki/Document/S1 Statistika/Skripsi/SEMIPARAMETRIK BIRESPON P SPLINE/P1 dan P2")
+data<- read.table("IKK dan PPM.txt",header=TRUE, sep="", 
+                  na.strings="NA", dec=".", strip.white=TRUE);data
+# Kernel Smoothing and Evaluation for x2
+library(ggplot2)
+
+x2 <- data$X2
+y3 <- data$Y1
+
+# Step 1: Calculate Optimal Bandwidth
+h3 <- regCVBwSelC(x2, y3, 0, kernel = gaussK)
+cat("Optimal Bandwidth (h3):", h3, "\n")
+
+# Step 2: Perform Kernel Smoothing
+x2_sort <- sort(x2)
+Kernelestimation3 <- locCteSmootherC(x2, y3, x2_sort, h3, kernel = gaussK)
+yestimate3 <- Kernelestimation3[, 2]
+
+# Step 3: Compute GCV and MSE
+rss <- sum((y3 - Kernelestimation3[, 2])^2)  # Residual sum of squares
+n <- length(y3)
+edf <- n / h3  # Approximation of Effective Degrees of Freedom
+gcv <- rss / (1 - (edf / n))^2
+mse <- mean((y3 - Kernelestimation3[, 2])^2)
+
+# Print the metrics
+cat("GCV:", gcv, "\n")
+cat("MSE:", mse, "\n")
+
+# Step 4: Save Plot
+plot(x2, y3, main = "Kernel Smoothing for x2", xlab = "x2", ylab = "Y1")
+lines(x2_sort, yestimate3, col = "blue", lwd = 2)
+# Step 5: Create a Table of Metrics
+results_table <- data.frame(
+  Metric = c("Generalized Cross Validation (GCV)", "Mean Squared Error (MSE)"),
+  Value = c(gcv, mse)
+)
+
+print(results_table)
