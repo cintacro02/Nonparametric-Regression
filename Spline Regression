@@ -1,0 +1,68 @@
+# Spline Regression for x2 with GCV and MSE Calculation
+fm1 <- lm(y3 ~ bs(x2, df = 3))  # Model with df=3
+fm2 <- lm(y3 ~ bs(x2, df = 5))  # Model with df=5
+fm3 <- lm(y3 ~ bs(x2, df = 10)) # Model with df=10
+ht <- seq(min(x2), max(x2), length.out = length(x2))  # Points for prediction
+
+# Compute GCV and MSE for each model
+calculate_metrics <- function(model, df, y, x) {
+  fitted_values <- predict(model)
+  rss <- sum((y - fitted_values)^2)  # Residual Sum of Squares
+  n <- length(y)  # Number of data points
+  edf <- df  # Approximation for effective degrees of freedom
+  gcv <- rss / (1 - (edf / n))^2  # GCV formula
+  mse <- mean((y - fitted_values)^2)  # MSE formula
+  list(GCV = gcv, MSE = mse)
+}
+
+# Metrics for each model
+metrics1 <- calculate_metrics(fm1, df = 3, y = y3, x = x2)
+metrics2 <- calculate_metrics(fm2, df = 5, y = y3, x = x2)
+metrics3 <- calculate_metrics(fm3, df = 10, y = y3, x = x2)
+
+# Print Metrics
+cat("Metrics for df=3: GCV =", metrics1$GCV, ", MSE =", metrics1$MSE, "\n")
+cat("Metrics for df=5: GCV =", metrics2$GCV, ", MSE =", metrics2$MSE, "\n")
+cat("Metrics for df=10: GCV =", metrics3$GCV, ", MSE =", metrics3$MSE, "\n")
+
+# Save Plot
+png("x2_Spline_Regression.png", width = 800, height = 600)
+plot(x2, y3, main = "Spline Regression: x2 vs Y1", xlab = "x2", ylab = "Y1", pch = 16, col = "black")
+lines(ht, predict(fm1, data.frame(x2 = ht)), col = "blue", lwd = 2, lty = 1)  # df=3
+lines(ht, predict(fm2, data.frame(x2 = ht)), col = "red", lwd = 2, lty = 2)   # df=5
+lines(ht, predict(fm3, data.frame(x2 = ht)), col = "green", lwd = 2, lty = 3) # df=10
+legend("topright", legend = c("df=3", "df=5", "df=10"), col = c("blue", "red", "green"), 
+       lty = c(1, 2, 3), lwd = 2, cex = 0.8)
+dev.off()
+
+# Display Results in Table Format
+results_table <- data.frame(
+  Degrees_of_Freedom = c(3, 5, 10),
+  GCV = c(metrics1$GCV, metrics2$GCV, metrics3$GCV),
+  MSE = c(metrics1$MSE, metrics2$MSE, metrics3$MSE)
+)
+
+print(results_table)
+
+
+# Rekapitulasi GCV dan MSE untuk Semua Metode
+
+# Kernel Smoothing
+kernel_gcv <- gcv  # From Kernel Smoothing section
+kernel_mse <- mse  # From Kernel Smoothing section
+
+# Local Polynomial
+local_poly_gcv <- gcv_values  # GCV values for degrees 0, 1, 2
+local_poly_mse <- mse_values  # MSE values for degrees 0, 1, 2
+
+# Local Linear
+local_linear_gcv <- gcv  # From Local Linear Estimation section
+local_linear_mse <- mse  # From Local Linear Estimation section
+
+# Smoothing Spline
+spline_gcv <- spl$cv.crit  # GCV from Smoothing Spline section
+spline_mse <- mse  # MSE from Smoothing Spline section
+
+# Spline Regression
+spline_regression_gcv <- c(metrics1$GCV, metrics2$GCV, metrics3$GCV)
+spline_regression_mse <- c(metrics1$MSE, metrics2$MSE, metrics3$MSE)
