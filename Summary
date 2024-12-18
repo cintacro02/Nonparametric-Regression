@@ -1,0 +1,165 @@
+# Create Summary Table
+summary_table <- data.frame(
+  Method = c(
+    "Kernel Smoothing",
+    "Local Polynomial (Degree 0)",
+    "Local Polynomial (Degree 1)",
+    "Local Polynomial (Degree 2)",
+    "Local Linear Estimation",
+    "Smoothing Spline",
+    "Spline Regression (df = 3)",
+    "Spline Regression (df = 5)",
+    "Spline Regression (df = 10)"
+  ),
+  GCV = c(
+    kernel_gcv,
+    local_poly_gcv[1],
+    local_poly_gcv[2],
+    local_poly_gcv[3],
+    local_linear_gcv,
+    spline_gcv,
+    spline_regression_gcv[1],
+    spline_regression_gcv[2],
+    spline_regression_gcv[3]
+  ),
+  MSE = c(
+    kernel_mse,
+    local_poly_mse[1],
+    local_poly_mse[2],
+    local_poly_mse[3],
+    local_linear_mse,
+    spline_mse,
+    spline_regression_mse[1],
+    spline_regression_mse[2],
+    spline_regression_mse[3]
+  )
+)
+
+# Print Summary Table
+print(summary_table)
+
+
+
+library(ggplot2)
+
+# Add an index for methods to order them in line plots
+summary_table$Index <- seq_len(nrow(summary_table))
+
+# Add GCV and MSE values as strings for the legend
+summary_table$GCV_Legend <- as.character(summary_table$GCV)
+summary_table$MSE_Legend <- as.character(summary_table$MSE)
+
+# GCV Line Plot with Legend for Values
+gcv_plot <- ggplot(summary_table, aes(x = Index, y = GCV, color = GCV_Legend, group = 1)) +
+  geom_line(size = 1, show.legend = FALSE) +
+  geom_point(size = 3) +
+  labs(
+    title = "Generalized Cross Validation (GCV) by Method",
+    x = "Method",
+    y = "GCV",
+    color = "GCV Values"
+  ) +
+  scale_x_continuous(breaks = summary_table$Index, labels = summary_table$Method) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# MSE Line Plot with Legend for Values
+mse_plot <- ggplot(summary_table, aes(x = Index, y = MSE, color = MSE_Legend, group = 1)) +
+  geom_line(size = 1, show.legend = FALSE) +
+  geom_point(size = 3) +
+  labs(
+    title = "Mean Squared Error (MSE) by Method",
+    x = "Method",
+    y = "MSE",
+    color = "MSE Values"
+  ) +
+  scale_x_continuous(breaks = summary_table$Index, labels = summary_table$Method) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plots to files
+ggsave("GCV_Line_Plot_With_Values_Legend.x2.png", gcv_plot, width = 10, height = 6)
+ggsave("MSE_Line_Plot_With_Values_Legend.x2.png", mse_plot, width = 10, height = 6)
+
+# Print the plots to the RStudio Viewer
+print(gcv_plot)
+print(mse_plot)
+
+# Perhitungan R-squared untuk semua model
+# =======================================
+
+# Hitung Total Sum of Squares (TSS)
+tss <- sum((y3 - mean(y3))^2)
+
+# Kernel Smoothing
+rss_kernel <- sum((y3 - Kernelestimation3[, 2])^2)
+r_squared_kernel <- 1 - (rss_kernel / tss)
+
+# Local Polynomial Estimation
+r_squared_local_poly <- numeric(length(vd))
+for (i in seq_along(vd)) {
+  # Compute RSS for each degree of polynomial
+  rss_local_poly <- sum((y3 - approx(locPolSmootherC(x2, y3, sort(x2), vh[i], vd[i], kernel = gaussK)[, 1:2], 
+                                     xout = x2)$y)^2)
+  r_squared_local_poly[i] <- 1 - (rss_local_poly / tss)
+}
+
+# Local Linear Estimation
+rss_local_linear <- sum((y3 - approx(Loclinestimation[, 1:2], xout = x2)$y)^2)
+r_squared_local_linear <- 1 - (rss_local_linear / tss)
+
+# Smoothing Spline
+rss_spline <- sum((y3 - pred$y)^2)
+r_squared_spline <- 1 - (rss_spline / tss)
+
+# Spline Regression
+r_squared_spline_reg <- function(model) {
+  rss <- sum(residuals(model)^2)
+  1 - (rss / tss)
+}
+
+r_squared_fm1 <- r_squared_spline_reg(fm1)
+r_squared_fm2 <- r_squared_spline_reg(fm2)
+r_squared_fm3 <- r_squared_spline_reg(fm3)
+
+# Membuat Tabel Ringkasan
+summary_table <- data.frame(
+  Model = c(
+    "Kernel Smoothing", 
+    paste("Local Polynomial (Degree", vd, ")"), 
+    "Local Linear", 
+    "Smoothing Spline", 
+    "Spline Regression (df=3)", 
+    "Spline Regression (df=5)", 
+    "Spline Regression (df=10)"
+  ),
+  R_squared = c(
+    r_squared_kernel, 
+    r_squared_local_poly, 
+    r_squared_local_linear, 
+    r_squared_spline, 
+    r_squared_fm1, 
+    r_squared_fm2, 
+    r_squared_fm3
+  )
+)
+
+# Cetak tabel ringkasan
+print(summary_table)
+
+# Visualisasi tabel jika diinginkan
+library(knitr)
+kable(summary_table, caption = "Summary of R-squared for All Models")
+
+# Data untuk tabel
+data <- data.frame(
+  Method = c("Kernel Smoothing", "Local Polynomial Estimator", 
+             "Local Linear Estimator", "Smoothing Spline"),
+  `Optimal Bandwidth / Parameter` = c(h3, paste(vh, collapse = ", "), h, spl$spar)
+)
+
+# Cetak tabel dengan knitr::kable
+library(knitr)
+kable(data, col.names = c("Method", "Optimal Bandwidth / Parameter"), 
+      caption = "Optimal Bandwidths and Smoothing Parameters")
+
